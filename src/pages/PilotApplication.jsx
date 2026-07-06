@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/lib/supabase";
 
 const ROLES = [
   { value: "student", label: "Student" },
@@ -13,6 +14,12 @@ const ROLES = [
   { value: "developer", label: "Software Developer" },
   { value: "parent", label: "Parent / Guardian" },
   { value: "other", label: "Other" },
+];
+
+const CODING_LEVELS = [
+  { value: "beginner", label: "Beginner — new to programming" },
+  { value: "intermediate", label: "Intermediate — comfortable with basics" },
+  { value: "advanced", label: "Advanced — working on complex problems" },
 ];
 
 const REFERRALS = [
@@ -26,12 +33,12 @@ const REFERRALS = [
 export default function PilotApplication() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const initialPlan = searchParams.get("plan") === "institutional" ? "institutional" : "pro";
+  const initialType = searchParams.get("plan") === "institutional" ? "institutional" : "individual";
 
-  const [plan, setPlan] = useState(initialPlan);
+  const [type, setType] = useState(initialType);
   const [form, setForm] = useState({
-    name: "", email: "", role: "", institution: "",
-    student_count: "", use_case: "", referral: "",
+    full_name: "", email: "", role: "", coding_level: "",
+    org_name: "", org_role: "", estimated_users: "", use_case: "", referral: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -44,10 +51,15 @@ export default function PilotApplication() {
     setError(null);
     setIsSubmitting(true);
     try {
+      // Attach session token if user is logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
       const res = await fetch("/api/pilot-apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, ...form }),
+        headers,
+        body: JSON.stringify({ type, ...form }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong. Please try again.");
@@ -71,7 +83,8 @@ export default function PilotApplication() {
             Thanks for applying to the CodeThinkLink pilot program.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-8">
-            We'll review your application and reach out to <strong className="text-foreground">{form.email}</strong> within a few days.
+            We'll review your application and reach out to{" "}
+            <strong className="text-foreground">{form.email}</strong> within a few days.
           </p>
           <Button onClick={() => navigate("/")} className="gap-2">
             <Code2 className="w-4 h-4" />
@@ -114,26 +127,26 @@ export default function PilotApplication() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Plan selector */}
+          {/* Type selector */}
           <div>
             <Label className="text-sm font-medium mb-3 block">Which plan interests you?</Label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "pro", label: "Pro — Individual", desc: "For students, self-learners, and individual developers", Icon: Code2 },
+                { value: "individual", label: "Pro — Individual", desc: "For students, self-learners, and developers", Icon: Code2 },
                 { value: "institutional", label: "Institutional", desc: "For schools, bootcamps, and organizations", Icon: Users },
               ].map(({ value, label, desc, Icon }) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setPlan(value)}
+                  onClick={() => setType(value)}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    plan === value
+                    type === value
                       ? "border-primary bg-primary/5"
                       : "border-border bg-background hover:border-primary/40"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 mb-2 ${plan === value ? "text-primary" : "text-muted-foreground"}`} />
-                  <p className={`text-sm font-semibold mb-1 ${plan === value ? "text-foreground" : "text-muted-foreground"}`}>
+                  <Icon className={`w-4 h-4 mb-2 ${type === value ? "text-primary" : "text-muted-foreground"}`} />
+                  <p className={`text-sm font-semibold mb-1 ${type === value ? "text-foreground" : "text-muted-foreground"}`}>
                     {label}
                   </p>
                   <p className="text-xs text-muted-foreground leading-snug">{desc}</p>
@@ -145,8 +158,8 @@ export default function PilotApplication() {
           {/* Name + Email */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="name">Full name <span className="text-destructive">*</span></Label>
-              <Input id="name" value={form.name} onChange={set("name")} required placeholder="Jane Smith" className="mt-1.5" />
+              <Label htmlFor="full_name">Full name <span className="text-destructive">*</span></Label>
+              <Input id="full_name" value={form.full_name} onChange={set("full_name")} required placeholder="Jane Smith" className="mt-1.5" />
             </div>
             <div>
               <Label htmlFor="email">Email address <span className="text-destructive">*</span></Label>
@@ -156,11 +169,12 @@ export default function PilotApplication() {
 
           {/* Role */}
           <div>
-            <Label htmlFor="role">Your role</Label>
+            <Label htmlFor="role">Your role <span className="text-destructive">*</span></Label>
             <select
               id="role"
               value={form.role}
               onChange={set("role")}
+              required
               className="mt-1.5 w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Select your role...</option>
@@ -170,32 +184,70 @@ export default function PilotApplication() {
             </select>
           </div>
 
-          {/* Institution */}
+          {/* Coding level */}
           <div>
-            <Label htmlFor="institution">
-              {plan === "institutional" ? "School or organization name" : "School or organization (optional)"}
-            </Label>
-            <Input
-              id="institution"
-              value={form.institution}
-              onChange={set("institution")}
-              required={plan === "institutional"}
-              placeholder={plan === "institutional" ? "Lincoln High School" : "Optional"}
-              className="mt-1.5"
-            />
+            <Label htmlFor="coding_level">Coding experience level</Label>
+            <select
+              id="coding_level"
+              value={form.coding_level}
+              onChange={set("coding_level")}
+              className="mt-1.5 w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select your level...</option>
+              {CODING_LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Student count — institutional only */}
-          {plan === "institutional" && (
+          {/* Institutional fields */}
+          {type === "institutional" && (
+            <>
+              <div>
+                <Label htmlFor="org_name">School or organization name <span className="text-destructive">*</span></Label>
+                <Input
+                  id="org_name"
+                  value={form.org_name}
+                  onChange={set("org_name")}
+                  required
+                  placeholder="Lincoln High School"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="org_role">Your role at the organization</Label>
+                <Input
+                  id="org_role"
+                  value={form.org_role}
+                  onChange={set("org_role")}
+                  placeholder="e.g. CS Department Head"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="estimated_users">Approximate number of students</Label>
+                <Input
+                  id="estimated_users"
+                  type="number"
+                  min="1"
+                  value={form.estimated_users}
+                  onChange={set("estimated_users")}
+                  placeholder="e.g. 120"
+                  className="mt-1.5"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Individual: optional org context */}
+          {type === "individual" && (
             <div>
-              <Label htmlFor="student_count">Approximate number of students</Label>
+              <Label htmlFor="org_name">School or organization (optional)</Label>
               <Input
-                id="student_count"
-                type="number"
-                min="1"
-                value={form.student_count}
-                onChange={set("student_count")}
-                placeholder="e.g. 120"
+                id="org_name"
+                value={form.org_name}
+                onChange={set("org_name")}
+                placeholder="Optional"
                 className="mt-1.5"
               />
             </div>

@@ -95,43 +95,29 @@ CREATE TRIGGER update_chats_updated_at
   BEFORE UPDATE ON public.chats
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Pilot applications table
-CREATE TABLE public.pilot_applications (
+-- Pilot applications table (CTL = CodeThinkLink)
+CREATE TABLE public.ctl_pilot_applications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('individual', 'institutional')),
+  full_name TEXT NOT NULL,
   email TEXT NOT NULL,
-  plan TEXT NOT NULL CHECK (plan IN ('pro', 'institutional')),
-  role TEXT,
-  institution TEXT,
-  use_case TEXT,
-  student_count INTEGER,
-  referral TEXT,
+  role TEXT NOT NULL,
+  coding_level TEXT,
+  use_case TEXT NOT NULL,
+  org_name TEXT,
+  org_role TEXT,
+  estimated_users INTEGER,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'waitlisted')),
-  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.pilot_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ctl_pilot_applications ENABLE ROW LEVEL SECURITY;
 
--- Only admins can read applications; anyone can insert
-CREATE POLICY "Public can submit pilot applications"
-  ON public.pilot_applications FOR INSERT
-  WITH CHECK (true);
+GRANT INSERT, SELECT ON public.ctl_pilot_applications TO authenticated;
+GRANT ALL ON public.ctl_pilot_applications TO service_role;
 
-CREATE POLICY "Admins can view pilot applications"
-  ON public.pilot_applications FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
-
-CREATE POLICY "Admins can update pilot applications"
-  ON public.pilot_applications FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
+CREATE POLICY "Users can submit and view own applications"
+  ON public.ctl_pilot_applications FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

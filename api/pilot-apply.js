@@ -10,23 +10,36 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name, email, plan, role, institution, use_case, student_count, referral } = req.body ?? {};
+  const {
+    type, full_name, email, role, coding_level,
+    use_case, org_name, org_role, estimated_users,
+  } = req.body ?? {};
 
-  if (!name?.trim() || !email?.trim() || !plan) {
+  if (!full_name?.trim() || !email?.trim() || !type || !role?.trim() || !use_case?.trim()) {
     return res.status(400).json({ error: 'Please fill in all required fields.' });
   }
 
+  // Attach user_id if the requester is logged in
+  const authHeader = req.headers.authorization;
+  let user_id = null;
+  if (authHeader?.startsWith('Bearer ')) {
+    const { data: { user } } = await supabase.auth.getUser(authHeader.slice(7));
+    user_id = user?.id ?? null;
+  }
+
   const { error } = await supabase
-    .from('pilot_applications')
+    .from('ctl_pilot_applications')
     .insert({
-      name: name.trim(),
+      user_id,
+      type,
+      full_name: full_name.trim(),
       email: email.trim().toLowerCase(),
-      plan,
-      role: role || null,
-      institution: institution?.trim() || null,
-      use_case: use_case?.trim() || null,
-      student_count: student_count ? parseInt(student_count, 10) : null,
-      referral: referral || null,
+      role: role.trim(),
+      coding_level: coding_level || null,
+      use_case: use_case.trim(),
+      org_name: org_name?.trim() || null,
+      org_role: org_role?.trim() || null,
+      estimated_users: estimated_users ? parseInt(estimated_users, 10) : null,
       status: 'pending',
     });
 
