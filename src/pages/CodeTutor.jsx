@@ -290,7 +290,7 @@ export default function CodeTutor() {
   };
 
   const handleWhiteboardSolution = (solution) => {
-    sendMessage(`I submitted this solution: ${solution}`);
+    sendMessage(solution);
   };
 
   const handleNewProblem = () => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { MessageCircle, PenTool, Lock } from "lucide-react";
+import { MessageCircle, Code2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ModeSelector({ mode, onModeChange, isPro }) {
@@ -20,8 +20,8 @@ export default function ModeSelector({ mode, onModeChange, isPro }) {
         size="sm"
         className="gap-2 text-xs"
       >
-        <PenTool className="w-3.5 h-3.5" />
-        Whiteboard
+        <Code2 className="w-3.5 h-3.5" />
+        Code Editor
         {!isPro && <Lock className="w-3 h-3 text-muted-foreground" />}
       </Button>
     </div>

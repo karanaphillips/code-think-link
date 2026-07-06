@@ -1,69 +1,26 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, FunctionSquare, X } from "lucide-react";
+import { Send, Code2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import katex from "katex";
-import "katex/dist/katex.min.css";
 
-const MATH_SNIPPETS = [
-  { label: "x²", insert: "x^{2}" },
-  { label: "xⁿ", insert: "x^{n}" },
-  { label: "√", insert: "\\sqrt{}" },
-  { label: "∛", insert: "\\sqrt[3]{}" },
-  { label: "frac", insert: "\\frac{}{}" },
-  { label: "∫", insert: "\\int_{a}^{b}" },
-  { label: "∑", insert: "\\sum_{i=1}^{n}" },
-  { label: "∏", insert: "\\prod_{i=1}^{n}" },
-  { label: "lim", insert: "\\lim_{x \\to }" },
-  { label: "→", insert: "\\to" },
-  { label: "∞", insert: "\\infty" },
-  { label: "≤", insert: "\\leq" },
-  { label: "≥", insert: "\\geq" },
-  { label: "≠", insert: "\\neq" },
-  { label: "±", insert: "\\pm" },
-  { label: "sin", insert: "\\sin()" },
-  { label: "cos", insert: "\\cos()" },
-  { label: "tan", insert: "\\tan()" },
-  { label: "ln", insert: "\\ln()" },
-  { label: "log", insert: "\\log_{}" },
-  { label: "eˣ", insert: "e^{x}" },
-  { label: "π", insert: "\\pi" },
-  { label: "θ", insert: "\\theta" },
-  { label: "α", insert: "\\alpha" },
-  { label: "β", insert: "\\beta" },
-  { label: "Δ", insert: "\\Delta" },
-  { label: "∂", insert: "\\partial" },
-  { label: "∇", insert: "\\nabla" },
-  { label: "matrix", insert: "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}" },
-  { label: "|x|", insert: "\\left| x \\right|" },
+const CODE_LANGUAGES = [
+  { value: "python", label: "Python" },
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "java", label: "Java" },
+  { value: "cpp", label: "C++" },
+  { value: "c", label: "C" },
+  { value: "html", label: "HTML" },
+  { value: "css", label: "CSS" },
+  { value: "sql", label: "SQL" },
+  { value: "bash", label: "Bash" },
+  { value: "pseudocode", label: "Pseudocode" },
 ];
-
-// Extract all $...$ regions and render them as KaTeX
-function renderPreview(text) {
-  if (!text) return null;
-  const parts = [];
-  const regex = /\$\$([\s\S]*?)\$\$|\$((?:[^$\\]|\\.)*)\$/g;
-  let last = 0;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) parts.push({ type: "text", content: text.slice(last, match.index) });
-    const isBlock = match[0].startsWith("$$");
-    const math = isBlock ? match[1] : match[2];
-    try {
-      parts.push({ type: "math", html: katex.renderToString(math, { displayMode: isBlock }), isBlock });
-    } catch {
-      parts.push({ type: "text", content: match[0] });
-    }
-    last = regex.lastIndex;
-  }
-  if (last < text.length) parts.push({ type: "text", content: text.slice(last) });
-  // Only show preview if there's actual math
-  if (!parts.some((p) => p.type === "math")) return null;
-  return parts;
-}
 
 export default function ChatInput({ onSend, disabled }) {
   const [value, setValue] = useState("");
-  const [showLatex, setShowLatex] = useState(false);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState("python");
+  const [codeValue, setCodeValue] = useState("");
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -87,69 +44,62 @@ export default function ChatInput({ onSend, disabled }) {
     }
   };
 
-  const insertSnippet = (snippet) => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    // Wrap in $ if not already inside math context
-    const before = value.slice(0, start);
-    const after = value.slice(end);
-    const insertion = `$${snippet}$`;
-    const newVal = before + insertion + after;
-    setValue(newVal);
-    // Place cursor inside the first {} if present, else after the $
-    setTimeout(() => {
-      const bracePos = newVal.indexOf("{", start);
-      const cursorPos = bracePos !== -1 && bracePos < start + insertion.length
-        ? bracePos + 1
-        : start + insertion.length - 1;
-      ta.focus();
-      ta.setSelectionRange(cursorPos, cursorPos);
-    }, 0);
+  const insertCodeBlock = () => {
+    if (!codeValue.trim()) return;
+    const block = `\`\`\`${codeLanguage}\n${codeValue}\n\`\`\``;
+    setValue((v) => (v ? `${v}\n\n${block}` : block));
+    setCodeValue("");
+    setShowCodeEditor(false);
   };
-
-  const preview = renderPreview(value);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
-      {/* LaTeX toolbar */}
-      {showLatex && (
-        <div className="rounded-xl border border-border bg-card p-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground">Math Symbols — click to insert</span>
-            <button type="button" onClick={() => setShowLatex(false)} className="text-muted-foreground hover:text-foreground">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {MATH_SNIPPETS.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => insertSnippet(s.insert)}
-                className="px-2 py-1 text-xs rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors font-mono"
+      {/* Code editor panel */}
+      {showCodeEditor && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <Code2 className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Insert code block</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={codeLanguage}
+                onChange={(e) => setCodeLanguage(e.target.value)}
+                className="text-xs px-2 py-1 rounded-md border border-border bg-background text-foreground focus:outline-none"
               >
-                {s.label}
+                {CODE_LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value}>{lang.label}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowCodeEditor(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
               </button>
-            ))}
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-2">
-            Wrap LaTeX in <span className="font-mono bg-muted px-1 rounded">$...$</span> for inline or <span className="font-mono bg-muted px-1 rounded">$$...$$</span> for display math.
-          </p>
-        </div>
-      )}
-
-      {/* Live preview */}
-      {preview && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground [&_.katex]:text-foreground [&_.katex-display]:my-1">
-          {preview.map((part, i) =>
-            part.type === "math" ? (
-              <span key={i} dangerouslySetInnerHTML={{ __html: part.html }} className={part.isBlock ? "block my-1" : "inline"} />
-            ) : (
-              <span key={i}>{part.content}</span>
-            )
-          )}
+          <textarea
+            value={codeValue}
+            onChange={(e) => setCodeValue(e.target.value)}
+            placeholder={`Paste your ${CODE_LANGUAGES.find((l) => l.value === codeLanguage)?.label ?? ""} code here...`}
+            rows={6}
+            className="w-full bg-muted/50 rounded-lg p-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none border border-border"
+          />
+          <div className="mt-2.5 flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              onClick={insertCodeBlock}
+              disabled={!codeValue.trim()}
+              className="text-xs h-7 gap-1.5"
+            >
+              <Code2 className="w-3 h-3" />
+              Insert Code Block
+            </Button>
+          </div>
         </div>
       )}
 
@@ -157,18 +107,20 @@ export default function ChatInput({ onSend, disabled }) {
       <div className="flex items-end gap-2 p-2 rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all duration-300">
         <button
           type="button"
-          onClick={() => setShowLatex((v) => !v)}
-          title="LaTeX equation editor"
-          className={`shrink-0 h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${showLatex ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}
+          onClick={() => setShowCodeEditor((v) => !v)}
+          title="Insert code block"
+          className={`shrink-0 h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${
+            showCodeEditor ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+          }`}
         >
-          <FunctionSquare className="w-4 h-4" />
+          <Code2 className="w-4 h-4" />
         </button>
         <textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a math question... use $x^2$ for equations"
+          placeholder="Ask a coding question or describe what you're trying to build..."
           disabled={disabled}
           rows={1}
           className="flex-1 resize-none bg-transparent px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 max-h-40"
