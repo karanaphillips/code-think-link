@@ -1,51 +1,35 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Check, BookmarkPlus, PenTool, PenLine } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Sparkles, Check, BookmarkPlus, Code2, PenLine } from "lucide-react";
 
 const REASON_COPY = {
   save: {
-    title: "Save your chats with Pro",
-    description: "Free tutoring is unlimited — upgrade to save your sessions and pick up where you left off.",
+    title: "Save your chats — join the pilot",
+    description: "Free tutoring is unlimited. Apply for the pilot program to save sessions and pick up where you left off.",
   },
   whiteboard: {
-    title: "Whiteboard is a Pro feature",
-    description: "Upgrade to access the interactive whiteboard and work through problems step by step.",
+    title: "Code Editor is a pilot feature",
+    description: "Apply for the pilot program to access the full code editor alongside your tutoring session.",
   },
   scratchpad: {
-    title: "Scratchpad is a Pro feature",
-    description: "Upgrade to use the handwriting scratchpad alongside your tutoring session.",
+    title: "Scratchpad is a pilot feature",
+    description: "Apply for the pilot program to use the persistent scratchpad alongside your sessions.",
   },
   default: {
-    title: "Unlock Pro features",
-    description: "Upgrade for $5.99/month to save sessions, use the whiteboard, and more.",
+    title: "Unlock pilot features",
+    description: "Apply for the free pilot program to save sessions, use the code editor, and more.",
   },
 };
 
 export default function UpgradeModal({ open, onClose, reason }) {
-  const [isLoading, setIsLoading] = useState(false);
-
+  const navigate = useNavigate();
   const copy = REASON_COPY[reason] ?? REASON_COPY.default;
 
-  const handleUpgrade = async () => {
-    setIsLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleApply = () => {
+    onClose();
+    navigate("/pilot");
   };
 
   return (
@@ -67,29 +51,30 @@ export default function UpgradeModal({ open, onClose, reason }) {
             <p className="text-sm font-semibold text-muted-foreground mb-2">Free — always</p>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlimited tutoring sessions</li>
-              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> All math topics</li>
-              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Graph & 3D visualizations</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Any language or topic</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Pseudocode & algorithm guidance</li>
             </ul>
           </div>
 
-          {/* Pro */}
+          {/* Pilot */}
           <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 relative">
             <div className="absolute -top-3 left-4">
-              <span className="bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full">Pro</span>
+              <span className="bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full">Pilot Program</span>
             </div>
             <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-primary" /> $5.99 / month
+              <Sparkles className="w-4 h-4 text-primary" /> Free during the pilot
             </p>
             <ul className="space-y-1.5 text-sm text-foreground">
               <li className="flex items-center gap-2"><BookmarkPlus className="w-4 h-4 text-primary flex-shrink-0" /> Save & revisit chat sessions</li>
-              <li className="flex items-center gap-2"><PenTool className="w-4 h-4 text-primary flex-shrink-0" /> Interactive whiteboard</li>
-              <li className="flex items-center gap-2"><PenLine className="w-4 h-4 text-primary flex-shrink-0" /> Handwriting scratchpad</li>
+              <li className="flex items-center gap-2"><Code2 className="w-4 h-4 text-primary flex-shrink-0" /> Full code editor mode</li>
+              <li className="flex items-center gap-2"><PenLine className="w-4 h-4 text-primary flex-shrink-0" /> Persistent scratchpad</li>
               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary flex-shrink-0" /> Export chat history</li>
             </ul>
-            <Button className="w-full mt-4 gap-2" onClick={handleUpgrade} disabled={isLoading}>
+            <Button className="w-full mt-4 gap-2" onClick={handleApply}>
               <Sparkles className="w-4 h-4" />
-              {isLoading ? "Redirecting to checkout..." : "Upgrade for $5.99/mo"}
+              Apply for the Pilot Program
             </Button>
+            <p className="text-center text-xs text-muted-foreground mt-2">No payment required</p>
           </div>
         </div>
       </DialogContent>

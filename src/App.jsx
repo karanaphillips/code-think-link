@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/lib/AuthContext';
 import PageNotFound from './lib/PageNotFound';
 import CodeTutor from './pages/CodeTutor';
+import PilotApplication from './pages/PilotApplication';
 import AdminDashboard from './pages/AdminDashboard';
 import UserProfile from './pages/UserProfile';
 import Login from './pages/Login';
@@ -27,6 +28,7 @@ function App() {
             <Route path="/org/dashboard" element={<OrgDashboard />} />
             <Route path="/org/join/:slug" element={<OrgJoin />} />
             <Route path="/org/join" element={<OrgJoin />} />
+            <Route path="/pilot" element={<PilotApplication />} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </Router>

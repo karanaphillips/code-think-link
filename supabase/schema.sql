@@ -94,3 +94,44 @@ CREATE TRIGGER update_profiles_updated_at
 CREATE TRIGGER update_chats_updated_at
   BEFORE UPDATE ON public.chats
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Pilot applications table
+CREATE TABLE public.pilot_applications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  plan TEXT NOT NULL CHECK (plan IN ('pro', 'institutional')),
+  role TEXT,
+  institution TEXT,
+  use_case TEXT,
+  student_count INTEGER,
+  referral TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'waitlisted')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.pilot_applications ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read applications; anyone can insert
+CREATE POLICY "Public can submit pilot applications"
+  ON public.pilot_applications FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view pilot applications"
+  ON public.pilot_applications FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admins can update pilot applications"
+  ON public.pilot_applications FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
