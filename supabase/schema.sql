@@ -7,42 +7,7 @@
 -- ================================================================
 
 
--- ── SECTION 1: HELPER FUNCTIONS ─────────────────────────────
--- Call these in RLS policies to avoid recursive profile lookups.
-
--- Returns the authenticated user's role in an org ('owner','admin','teacher','student' or NULL)
-CREATE OR REPLACE FUNCTION public.ctl_user_org_role(p_org_id UUID)
-RETURNS TEXT
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT role FROM public.ctl_org_members
-  WHERE org_id = p_org_id
-    AND user_id = auth.uid()
-    AND status = 'active'
-  LIMIT 1;
-$$;
-
--- Returns the authenticated user's role in a department
-CREATE OR REPLACE FUNCTION public.ctl_user_dept_role(p_dept_id UUID)
-RETURNS TEXT
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT role FROM public.ctl_dept_members
-  WHERE dept_id = p_dept_id
-    AND user_id = auth.uid()
-  LIMIT 1;
-$$;
-
--- Returns TRUE if the authenticated user is a platform admin
-CREATE OR REPLACE FUNCTION public.ctl_is_platform_admin()
-RETURNS BOOLEAN
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
-  );
-$$;
-
-
--- ── SECTION 2: CORE USER PROFILE ────────────────────────────
+-- ── SECTION 1: PROFILES ─────────────────────────────────────
 
 CREATE TABLE public.profiles (
   id                      UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
@@ -256,7 +221,7 @@ CREATE TABLE public.chats (
 );
 
 
--- ── SECTION 10: PILOT APPLICATIONS ──────────────────────────
+-- ── SECTION 9: PILOT APPLICATIONS ───────────────────────────
 
 CREATE TABLE public.ctl_pilot_applications (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -275,6 +240,40 @@ CREATE TABLE public.ctl_pilot_applications (
   notes           TEXT,   -- internal reviewer notes
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+
+-- ================================================================
+-- SECTION 10: HELPER FUNCTIONS
+-- (defined after tables so SQL can validate the references)
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION public.ctl_user_org_role(p_org_id UUID)
+RETURNS TEXT
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT role FROM public.ctl_org_members
+  WHERE org_id = p_org_id
+    AND user_id = auth.uid()
+    AND status = 'active'
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ctl_user_dept_role(p_dept_id UUID)
+RETURNS TEXT
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT role FROM public.ctl_dept_members
+  WHERE dept_id = p_dept_id
+    AND user_id = auth.uid()
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ctl_is_platform_admin()
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
 
 
 -- ================================================================
