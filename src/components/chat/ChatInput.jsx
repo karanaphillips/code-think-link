@@ -9,6 +9,7 @@ const CODE_LANGUAGES = [
   { value: "java", label: "Java" },
   { value: "cpp", label: "C++" },
   { value: "c", label: "C" },
+  { value: "csharp", label: "C#" },
   { value: "html", label: "HTML" },
   { value: "css", label: "CSS" },
   { value: "sql", label: "SQL" },
