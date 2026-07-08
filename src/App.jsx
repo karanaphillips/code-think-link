@@ -9,6 +9,8 @@ import PilotApplication from './pages/PilotApplication';
 import AdminDashboard from './pages/AdminDashboard';
 import UserProfile from './pages/UserProfile';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import OrgSetup from './pages/org/OrgSetup';
 import OrgDashboard from './pages/org/OrgDashboard';
 import OrgJoin from './pages/org/OrgJoin';
@@ -21,6 +23,8 @@ function App() {
           <Routes>
             <Route path="/" element={<CodeTutor />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/admin" element={<AdminDashboard />} />
             {/* Institutional routes */}
